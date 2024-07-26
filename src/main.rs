@@ -1,9 +1,11 @@
+extern crate battery;
 extern crate chrono;
 extern crate eframe;
 extern crate egui;
+extern crate egui_dnd;
 extern crate gethostname;
 extern crate users;
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Hash)]
 enum Segment {
     #[default]
     Empty,
@@ -104,7 +106,122 @@ impl eframe::App for PlaceSegmentsOn {
                 });
             if ui.button("Add").clicked() {
                 self.segments.push(self.new_segment.clone());
-                self.translation = match &self.new_segment {
+            }
+            self.preview = egui::text::LayoutJob::default();
+            let mut color = egui::Color32::BLACK;
+            let mut bg_color = egui::Color32::WHITE;
+            let mut text = String::new();
+            for index in 0..self.segments.len() {
+                (color, bg_color, text) = colors_text(&self.segments[index]);
+                if self.segments.len() == 1 {
+                    self.preview.append(
+                        "",
+                        0.0,
+                        egui::TextFormat {
+                            font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                            color: bg_color,
+                            ..Default::default()
+                        },
+                    );
+                    self.preview.append(
+                        text.as_str(),
+                        0.0,
+                        egui::TextFormat {
+                            font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                            color,
+                            background: bg_color,
+                            ..Default::default()
+                        },
+                    );
+                    self.preview.append(
+                        "",
+                        0.0,
+                        egui::TextFormat {
+                            font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                            color: bg_color,
+                            ..Default::default()
+                        },
+                    );
+                } else {
+                    if index == 0 {
+                        self.preview.append(
+                            "",
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                                color: bg_color,
+                                ..Default::default()
+                            },
+                        );
+                        self.preview.append(
+                            text.as_str(),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                                color,
+                                background: bg_color,
+                                ..Default::default()
+                            },
+                        );
+                        if self.segments.len() > 1 {
+                            self.preview.append(
+                                "󰍟",
+                                0.0,
+                                egui::TextFormat {
+                                    font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                                    color: bg_color,
+                                    background: colors_text(&self.segments[index + 1]).1,
+                                    ..Default::default()
+                                },
+                            );
+                        }
+                    } else if index == self.segments.len() - 1 {
+                        self.preview.append(
+                            text.as_str(),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                                color,
+                                background: bg_color,
+                                ..Default::default()
+                            },
+                        );
+                        self.preview.append(
+                            "",
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                                color: bg_color,
+                                ..Default::default()
+                            },
+                        );
+                    } else {
+                        self.preview.append(
+                            text.as_str(),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                                color,
+                                background: bg_color,
+                                ..Default::default()
+                            },
+                        );
+                        self.preview.append(
+                            "󰍟",
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
+                                color: bg_color,
+                                background: colors_text(&self.segments[index + 1]).1,
+                                ..Default::default()
+                            },
+                        );
+                    }
+                }
+            }
+            self.full = String::from("export PS1=\"");
+            for segment in &self.segments {
+                self.translation = match segment {
                     Segment::Empty => String::from(""),
                     Segment::User(color, bg_color, icon) => format!(
                         "\\e[38;2;{};{};{};48;2;{};{};{}m\\u",
@@ -144,123 +261,24 @@ impl eframe::App for PlaceSegmentsOn {
                     ),
                 };
                 self.full.push_str(self.translation.as_str());
-                self.preview = egui::text::LayoutJob::default();
-                let mut color = egui::Color32::BLACK;
-                let mut bg_color = egui::Color32::WHITE;
-                let mut text = String::new();
-                for index in 0..self.segments.len() {
-                    (color, bg_color, text) = colors_text(&self.segments[index]);
-                    if self.segments.len() == 1 {
-                        self.preview.append(
-                            "",
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                color: bg_color,
-                                ..Default::default()
-                            },
-                        );
-                        self.preview.append(
-                            text.as_str(),
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                color,
-                                background: bg_color,
-                                ..Default::default()
-                            },
-                        );
-                        self.preview.append(
-                            "",
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                color: bg_color,
-                                ..Default::default()
-                            },
-                        );
-                    } else {
-                        if index == 0 {
-                            self.preview.append(
-                                "",
-                                0.0,
-                                egui::TextFormat {
-                                    font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                    color: bg_color,
-                                    ..Default::default()
-                                },
-                            );
-                            self.preview.append(
-                                text.as_str(),
-                                0.0,
-                                egui::TextFormat {
-                                    font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                    color,
-                                    background: bg_color,
-                                    ..Default::default()
-                                },
-                            );
-                            if self.segments.len() > 1 {
-                                self.preview.append(
-                                    "󰍟",
-                                    0.0,
-                                    egui::TextFormat {
-                                        font_id: egui::FontId::new(
-                                            14.0,
-                                            egui::FontFamily::Monospace,
-                                        ),
-                                        color: bg_color,
-                                        background: colors_text(&self.segments[index + 1]).1,
-                                        ..Default::default()
-                                    },
-                                );
-                            }
-                        } else if index == self.segments.len() - 1 {
-                            self.preview.append(
-                                text.as_str(),
-                                0.0,
-                                egui::TextFormat {
-                                    font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                    color,
-                                    background: bg_color,
-                                    ..Default::default()
-                                },
-                            );
-                            self.preview.append(
-                                "",
-                                0.0,
-                                egui::TextFormat {
-                                    font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                    color: bg_color,
-                                    ..Default::default()
-                                },
-                            );
-                        } else {
-                            self.preview.append(
-                                text.as_str(),
-                                0.0,
-                                egui::TextFormat {
-                                    font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                    color,
-                                    background: bg_color,
-                                    ..Default::default()
-                                },
-                            );
-                            self.preview.append(
-                                "󰍟",
-                                0.0,
-                                egui::TextFormat {
-                                    font_id: egui::FontId::new(14.0, egui::FontFamily::Monospace),
-                                    color: bg_color,
-                                    background: colors_text(&self.segments[index + 1]).1,
-                                    ..Default::default()
-                                },
-                            );
-                        }
-                    }
-                }
             }
+            self.full.push('"');
+            egui_dnd::dnd(ui, "preview").show_vec(&mut self.segments, |ui, item, handle, state| {
+                ui.horizontal(|ui| {
+                    handle.ui(ui, |ui| {
+                        if state.dragged {
+                            ui.label("dragging");
+                        } else {
+                            ui.label("drag");
+                        }
+                    });
+                    ui.label(colors_text(&item).2);
+                });
+            });
+            ui.label("Preview:");
             ui.label(self.preview.clone());
+            ui.label("Paste the following into your ~/.bashrc");
+            ui.code(self.full.clone());
         });
     }
 }
@@ -300,11 +318,36 @@ fn colors_text(segment: &Segment) -> (egui::Color32, egui::Color32, String) {
                 format!("{:?}{}{:?}", user2, between, hostname),
             )
         }
+        Segment::Battery(color, bg_color, icon) => (
+            egui::Color32::from_rgb(color[0], color[1], color[2]),
+            egui::Color32::from_rgb(bg_color[0], bg_color[1], bg_color[2]),
+            match battery::Manager::new().unwrap().batteries().unwrap().next() {
+                None => String::from("No battery"),
+                Some(battery) => {
+                    let mut percentage = ((format!("{:?}", battery.unwrap().state_of_charge())
+                        .parse::<f32>()
+                        .unwrap()
+                        * 100.0) as u8)
+                        .to_string();
+                    percentage.push('%');
+                    percentage
+                }
+            },
+        ),
+        Segment::Network(color, bg_color, icon) => (
+            egui::Color32::from_rgb(color[0], color[1], color[2]),
+            egui::Color32::from_rgb(bg_color[0], bg_color[1], bg_color[2]),
+            String::from("Your Network"),
+        ),
         Segment::Time(color, bg_color, icon, strftime) => (
             egui::Color32::from_rgb(color[0], color[1], color[2]),
             egui::Color32::from_rgb(bg_color[0], bg_color[1], bg_color[2]),
             format!("{}", chrono::offset::Local::now().format(strftime)),
         ),
-        _ => (egui::Color32::BLACK, egui::Color32::WHITE, String::new()),
+        Segment::Custom(color, bg_color, icon, text) => (
+            egui::Color32::from_rgb(color[0], color[1], color[2]),
+            egui::Color32::from_rgb(bg_color[0], bg_color[1], bg_color[2]),
+            String::from(text.as_str()), // turning the &String into a String
+        ),
     }
 }
