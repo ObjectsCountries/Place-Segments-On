@@ -53,7 +53,9 @@ impl eframe::App for PlaceSegmentsOn {
             ui.checkbox(&mut self.icon, "Add an icon before the output");
             ui.label("Put string input here");
             ui.text_edit_singleline(&mut self.custom_input);
+            ui.label("Select text color");
             ui.color_edit_button_srgb(&mut self.color);
+            ui.label("Select background color");
             ui.color_edit_button_srgb(&mut self.bg_color);
             egui::ComboBox::from_label("Select Segment")
                 .selected_text(format!("{:?}", self.new_segment))
@@ -220,47 +222,365 @@ impl eframe::App for PlaceSegmentsOn {
                 }
             }
             self.full = String::from("export PS1=\"");
+            let mut prev_color: egui::Color32 = egui::Color32::BLACK;
             for segment in &self.segments {
-                self.translation = match segment {
-                    Segment::Empty => String::from(""),
-                    Segment::User(color, bg_color, icon) => format!(
-                        "\\e[38;2;{};{};{};48;2;{};{};{}m\\u",
-                        color[0], color[1], color[2], bg_color[0], bg_color[1], bg_color[2]
-                    ),
-                    Segment::UserDevice(color, bg_color, icon, between) => format!(
-                        "\\e[38;2;{};{};{};48;2;{};{};{}m\\u{}\\h",
-                        color[0],
-                        color[1],
-                        color[2],
-                        bg_color[0],
-                        bg_color[1],
-                        bg_color[2],
-                        between
-                    ),
-                    Segment::Battery(color, bg_color, icon) => format!(
-                        "\\e[38;2;{};{};{};48;2;{};{};{}m\\$(battery)",
-                        color[0], color[1], color[2], bg_color[0], bg_color[1], bg_color[2],
-                    ),
-                    Segment::Network(color, bg_color, icon) => format!(
-                        "\\e[38;2;{};{};{};48;2;{};{};{}m\\$(network)",
-                        color[0], color[1], color[2], bg_color[0], bg_color[1], bg_color[2],
-                    ),
-                    Segment::Time(color, bg_color, icon, strftime) => format!(
-                        "\\e[38;2;{};{};{};48;2;{};{};{}m\\D{{{}}}",
-                        color[0],
-                        color[1],
-                        color[2],
-                        bg_color[0],
-                        bg_color[1],
-                        bg_color[2],
-                        strftime
-                    ),
-                    Segment::Custom(color, bg_color, icon, custom) => format!(
-                        "\\e[38;2;{};{};{};48;2;{};{};{}m{}",
-                        color[0], color[1], color[2], bg_color[0], bg_color[1], bg_color[2], custom
-                    ),
-                };
+                if segment == &self.segments[0] && self.segments.len() == 1 {
+                    self.translation =
+                        match segment {
+                            Segment::Empty => String::from(""),
+                            Segment::User(color, bg_color, icon) => {
+                                format!(
+                                    "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\u\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    color[0],
+                                    color[1],
+                                    color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                )
+                            }
+                            Segment::UserDevice(color, bg_color, icon, between) => format!(
+                                "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\u{}\\h\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                between,
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                            ),
+                            Segment::Battery(color, bg_color, icon) => {
+                                format!(
+                            "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$(battery)\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                            bg_color[0], bg_color[1], bg_color[2], color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                        )
+                            }
+                            Segment::Network(color, bg_color, icon) => {
+                                format!(
+                            "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$(network)\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                            bg_color[0], bg_color[1], bg_color[2],color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                        )
+                            }
+                            Segment::Time(color, bg_color, icon, strftime) => format!(
+                                "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\D{{{}}}\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                strftime,
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                            ),
+                            Segment::Custom(color, bg_color, icon, custom) => format!(
+                                "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]{}\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                custom,
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                            ),
+                        };
+                } else if segment == &self.segments[0] {
+                    self.translation =
+                        match segment {
+                            Segment::Empty => String::from(""),
+                            Segment::User(color, bg_color, icon) => {
+                                format!(
+                                    "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\u",
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    color[0],
+                                    color[1],
+                                    color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                )
+                            }
+                            Segment::UserDevice(color, bg_color, icon, between) => format!(
+                                "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\u{}\\h",
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                between,
+                            ),
+                            Segment::Battery(color, bg_color, icon) => {
+                                format!(
+                            "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$(battery)",
+                            bg_color[0], bg_color[1], bg_color[2], color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                        )
+                            }
+                            Segment::Network(color, bg_color, icon) => {
+                                format!(
+                            "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$(network)",
+                            bg_color[0], bg_color[1], bg_color[2],color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                        )
+                            }
+                            Segment::Time(color, bg_color, icon, strftime) => format!(
+                                "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\D{{{}}}",
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                strftime,
+                            ),
+                            Segment::Custom(color, bg_color, icon, custom) => format!(
+                                "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]{}",
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                custom,
+                            ),
+                        };
+                } else if segment == &self.segments[self.segments.len() - 1] {
+                    self.translation =
+                        match segment {
+                            Segment::Empty => String::from(""),
+                            Segment::User(color, bg_color, icon) => format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\u\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                            ),
+                            Segment::UserDevice(color, bg_color, icon, between) => format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\u{}\\h\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                between,
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                            ),
+                            Segment::Battery(color, bg_color, icon) => format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$(battery)\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                        ),
+                            Segment::Network(color, bg_color, icon) => format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$(network)\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                        ),
+                            Segment::Time(color, bg_color, icon, strftime) => format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\D{{{}}}\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                strftime,
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                            ),
+                            Segment::Custom(color, bg_color, icon, custom) => format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]{}\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                custom,
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                            ),
+                        };
+                } else {
+                    self.translation = match segment {
+                        Segment::Empty => String::from(""),
+                        Segment::User(color, bg_color, icon) => format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\u",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0], bg_color[1], bg_color[2], color[0], color[1], color[2]
+                        ),
+                        Segment::UserDevice(color, bg_color, icon, between) => format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\u{}\\h",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0],
+                            bg_color[1],
+                            bg_color[2],
+                            color[0],
+                            color[1],
+                            color[2],
+                            between
+                        ),
+                        Segment::Battery(color, bg_color, icon) => format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$(battery)",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0],
+                            bg_color[1],
+                            bg_color[2],
+                            color[0], color[1], color[2], 
+                        ),
+                        Segment::Network(color, bg_color, icon) => format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$(network)",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0],
+                            bg_color[1],
+                            bg_color[2],
+                            color[0], color[1], color[2], 
+                        ),
+                        Segment::Time(color, bg_color, icon, strftime) => format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\D{{{}}}",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0],
+                            bg_color[1],
+                            bg_color[2],
+                            color[0],
+                            color[1],
+                            color[2],
+                            strftime
+                        ),
+                        Segment::Custom(color, bg_color, icon, custom) => format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]{}",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0],
+                            bg_color[1],
+                            bg_color[2],
+                            color[0],
+                            color[1],
+                            color[2],
+                            custom
+                        ),
+                    };
+                }
                 self.full.push_str(self.translation.as_str());
+                prev_color = match segment {
+                    Segment::Empty => egui::Color32::BLACK,
+                    Segment::User(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
+                    Segment::UserDevice(_, prev_color, _, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
+                    Segment::Battery(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
+                    Segment::Network(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
+                    Segment::Time(_, prev_color, _, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
+                    Segment::Custom(_, prev_color, _, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
+                };
             }
             self.full.push('"');
             egui_dnd::dnd(ui, "preview").show_vec(&mut self.segments, |ui, item, handle, state| {

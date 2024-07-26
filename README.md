@@ -9,7 +9,6 @@ A GUI tool written in Rust for ricing the `$PS1` environment variable.
 * Network functionality
 * Icon checkbox functionality
 * Bash functions for the network and battery segments
-* Separators in output
 * "Copy" button below output
 
 ### Fix
