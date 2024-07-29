@@ -1,15 +1,15 @@
 # Place Segments On
 
-A GUI tool written in Rust for ricing the `$PS1` environment variable.
+A GUI tool written in Rust for ricing the `$PS1` environment variable in Bash.
 
 ## To Do
 
 ### Add
 
 * Network functionality
-* Icon checkbox functionality
-* Bash functions for the network and battery segments
-* "Copy" button below output
+* "Copy" button above output
+* Exit code segment
+* Weather segment
 
 ### Fix
 
