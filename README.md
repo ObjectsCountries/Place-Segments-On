@@ -10,6 +10,8 @@ A GUI tool written in Rust for ricing the `$PS1` environment variable in Bash.
 * "Copy" button above output
 * Exit code segment
 * Weather segment
+* Directory segment
+* Directory with Git segment
 
 ### Fix
 
