@@ -14,6 +14,7 @@ enum Segment {
     Battery([u8; 3], [u8; 3], bool),
     Network([u8; 3], [u8; 3], bool),
     Time([u8; 3], [u8; 3], bool, String),
+    ExitCode([u8; 3], [u8; 3], bool),
     Custom([u8; 3], [u8; 3], bool, String),
 }
 
@@ -97,6 +98,15 @@ impl eframe::App for PlaceSegmentsOn {
                     );
                     ui.selectable_value(
                         &mut self.new_segment,
+                        Segment::ExitCode(
+                            self.color,
+                            self.bg_color,
+                            self.icon
+                        ),
+                        "Exit Code",
+                    );
+                    ui.selectable_value(
+                        &mut self.new_segment,
                         Segment::Custom(
                             self.color,
                             self.bg_color,
@@ -110,9 +120,9 @@ impl eframe::App for PlaceSegmentsOn {
                 self.segments.push(self.new_segment.clone());
             }
             self.preview = egui::text::LayoutJob::default();
-            let mut color = egui::Color32::BLACK;
-            let mut bg_color = egui::Color32::WHITE;
-            let mut text = String::new();
+            let mut color: egui::Color32;
+            let mut bg_color: egui::Color32;
+            let mut text: String;
             for index in 0..self.segments.len() {
                 (color, bg_color, text) = colors_text(&self.segments[index]);
                 if self.new_segment != Segment::Select {
@@ -246,6 +256,18 @@ impl eframe::App for PlaceSegmentsOn {
             }) {
                 self.full.push_str("signal_strength () {\n    WIFI=$( iw dev wlp0s20f3 link )\n    SIGNAL=$( echo $WIFI | sed -n 's/.*signal: -\\([0-9]\\+\\) dBm.*/\\1/p' )\n    if [[ $SIGNAL ]]; then\n        NETWORK=$( echo $WIFI | sed -n 's/.*SSID: \\(.*\\) freq: .*/\\1/p' )\n        echo $NETWORK\n    else\n        echo \"No Connection\"\n    fi\n}");
             }
+            if self.segments.iter().any(|s| match s {
+                Segment::ExitCode(_, _, true) => true,
+                _ => false,
+            }) {
+            self.full.push_str("exit_code () {\n    EXIT=$(echo $?)\n    if [[ $EXIT -eq 0 ]]; then\n        EXIT=\"󰔓 $EXIT\"\n    else\n        EXIT=\"󰔑 $EXIT\"\n    fi\n    echo $EXIT\n}\n\n");
+            } else if self.segments.iter().any(|s| match s {
+                Segment::ExitCode(_, _, false) => true,
+                _ => false,
+            }) {
+                self.full.push_str("exit_code () { echo $? }\n\n");
+            }
+
             self.full.push_str("export PS1=\"");
             let mut prev_color: egui::Color32 = egui::Color32::BLACK;
             for segment in &self.segments {
@@ -388,6 +410,20 @@ format!(
                                     bg_color[1],
                                     bg_color[2],
                             )
+                            }
+                            Segment::ExitCode(color, bg_color, _) => {
+                                    format!(
+                            "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$(exit_code)\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                            bg_color[0], bg_color[1], bg_color[2], color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                        )
                             }
                             Segment::Custom(color, bg_color, icon, custom) => if *icon {
                                 format!(
@@ -538,6 +574,17 @@ format!(
                                 strftime,
                             )
                             },
+                            Segment::ExitCode(color, bg_color, _) => {
+                                format!(
+                            "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$(exit_code)",
+                            bg_color[0], bg_color[1], bg_color[2], color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                        )
+                            }
                             Segment::Custom(color, bg_color, icon, custom) =>
                             if *icon {
                                 format!(
@@ -707,6 +754,21 @@ format!(
                                 bg_color[2],
                             )
                             },
+                            Segment::ExitCode(color, bg_color, _) => format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$(exit_code)\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                        ),
                             Segment::Custom(color, bg_color, icon, custom) =>
                             if *icon {
                                 format!(
@@ -845,6 +907,16 @@ format!(
                             strftime
                         )
                         },
+                        Segment::ExitCode(color, bg_color, _) => format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$(exit_code)",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0],
+                            bg_color[1],
+                            bg_color[2],
+                            color[0], color[1], color[2],
+                        ),
                         Segment::Custom(color, bg_color, icon, custom) =>
                         if *icon {
                             format!(
@@ -885,6 +957,7 @@ format!(
                     Segment::Battery(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
                     Segment::Network(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
                     Segment::Time(_, prev_color, _, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
+                    Segment::ExitCode(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
                     Segment::Custom(_, prev_color, _, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
                 };
             }
@@ -970,7 +1043,7 @@ fn colors_text(segment: &Segment) -> (egui::Color32, egui::Color32, String) {
             match battery::Manager::new().unwrap().batteries().unwrap().next() {
                 None => String::from("No battery"),
                 Some(battery) => {
-                    let mut percentage_number =
+                    let percentage_number =
                         (format!("{:?}", battery.as_ref().unwrap().state_of_charge())
                             .parse::<f32>()
                             .unwrap()
@@ -1085,6 +1158,15 @@ fn colors_text(segment: &Segment) -> (egui::Color32, egui::Color32, String) {
                 format!("󰥔 {}", chrono::offset::Local::now().format(strftime))
             } else {
                 format!("{}", chrono::offset::Local::now().format(strftime))
+            },
+        ),
+        Segment::ExitCode(color, bg_color, icon) => (
+            egui::Color32::from_rgb(color[0], color[1], color[2]),
+            egui::Color32::from_rgb(bg_color[0], bg_color[1], bg_color[2]),
+            if *icon {
+                String::from("󰔓 0")
+            } else {
+                String::from("0")
             },
         ),
         Segment::Custom(color, bg_color, icon, text) => (
