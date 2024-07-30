@@ -15,6 +15,7 @@ enum Segment {
     Network([u8; 3], [u8; 3], bool),
     Time([u8; 3], [u8; 3], bool, String),
     ExitCode([u8; 3], [u8; 3], bool),
+    Directory([u8; 3], [u8; 3], bool),
     Custom([u8; 3], [u8; 3], bool, String),
 }
 
@@ -104,6 +105,15 @@ impl eframe::App for PlaceSegmentsOn {
                             self.icon
                         ),
                         "Exit Code",
+                    );
+                    ui.selectable_value(
+                        &mut self.new_segment,
+                        Segment::Directory(
+                            self.color,
+                            self.bg_color,
+                            self.icon
+                        ),
+                        "Directory",
                     );
                     ui.selectable_value(
                         &mut self.new_segment,
@@ -267,7 +277,6 @@ impl eframe::App for PlaceSegmentsOn {
             }) {
                 self.full.push_str("exit_code () { echo $? }\n\n");
             }
-
             self.full.push_str("export PS1=\"");
             let mut prev_color: egui::Color32 = egui::Color32::BLACK;
             for segment in &self.segments {
@@ -424,6 +433,41 @@ format!(
                                     bg_color[1],
                                     bg_color[2],
                         )
+                            }
+                            Segment::Directory(color, bg_color, icon) => {
+                                if *icon {
+                                format!(
+                                    "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$( git rev-parse --is-inside-work-tree >/dev/null 2>&1 && __git_ps1 \\\"󰊢 \\w: %s\\\" || ([ -n \\\"\\$(ls -A .)\\\" ] && echo \\\" \\w\\\" || echo \\\" \\w\\\"))\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    color[0],
+                                    color[1],
+                                    color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                )
+                                } else {
+                                format!(
+                                    "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$( git rev-parse --is-inside-work-tree >/dev/null 2>&1 && __git_ps1 \\\"\\w: %s\\\" || echo \\\"\\w\\\")\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\]",
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    color[0],
+                                    color[1],
+                                    color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                )
+                                }
                             }
                             Segment::Custom(color, bg_color, icon, custom) => if *icon {
                                 format!(
@@ -584,6 +628,35 @@ format!(
                                 bg_color[1],
                                 bg_color[2],
                         )
+                            }
+                            Segment::Directory(color, bg_color, icon) => {
+                                if *icon {
+                                    format!(
+                                    "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$( git rev-parse --is-inside-work-tree >/dev/null 2>&1 && __git_ps1 \\\"󰊢 \\w: %s\\\" || ([ -n \\\"\\$(ls -A .)\\\" ] && echo \\\" \\w\\\" || echo \\\" \\w\\\"))",
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    color[0],
+                                    color[1],
+                                    color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                )
+                                } else {
+                                    format!(
+                                    "\\[\\e[38;2;{};{};{}m\\]\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]\\$( git rev-parse --is-inside-work-tree >/dev/null 2>&1 && __git_ps1 \\\"\\w: %s\\\" || echo \\\"\\w\\\")",
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                    color[0],
+                                    color[1],
+                                    color[2],
+                                    bg_color[0],
+                                    bg_color[1],
+                                    bg_color[2],
+                                )
+                                }
                             }
                             Segment::Custom(color, bg_color, icon, custom) =>
                             if *icon {
@@ -769,6 +842,40 @@ format!(
                                 bg_color[1],
                                 bg_color[2],
                         ),
+                            Segment::Directory(color, bg_color, icon) =>
+                            if *icon {
+                            format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$( git rev-parse --is-inside-work-tree >/dev/null 2>&1 && __git_ps1 \\\"󰊢 \\w: %s\\\" || ([ -n \\\"\\$(ls -A .)\\\" ] && echo \\\" \\w\\\" || echo \\\" \\w\\\"))\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                            )
+                            } else {
+                                format!(
+                                "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$( git rev-parse --is-inside-work-tree >/dev/null 2>&1 && __git_ps1 \\\"\\w: %s\\\" || echo \\\"\\w\\\")\\[\\e[38;2;{};{};{};48;1m\\]\\[\\e[0m\\] ",
+                                &prev_color[0],
+                                &prev_color[1],
+                                &prev_color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                                color[0],
+                                color[1],
+                                color[2],
+                                bg_color[0],
+                                bg_color[1],
+                                bg_color[2],
+                            )
+                            }
                             Segment::Custom(color, bg_color, icon, custom) =>
                             if *icon {
                                 format!(
@@ -917,6 +1024,24 @@ format!(
                             bg_color[2],
                             color[0], color[1], color[2],
                         ),
+                        Segment::Directory(color, bg_color, icon) =>
+                        if *icon {
+                            format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$( git rev-parse --is-inside-work-tree >/dev/null 2>&1 && __git_ps1 \\\"󰊢 \\w: %s\\\" || ([ -n \\\"\\$(ls -A .)\\\" ] && echo \\\" \\w\\\" || echo \\\" \\w\\\"))",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0], bg_color[1], bg_color[2], color[0], color[1], color[2]
+                        )
+                        } else {
+                            format!(
+                            "\\[\\e[38;2;{};{};{};48;2;{};{};{}m\\]󰍟\\[\\e[38;2;{};{};{}m\\]\\$( git rev-parse --is-inside-work-tree >/dev/null 2>&1 && __git_ps1 \\\"\\w: %s\\\" || echo \\\"\\w\\\")",
+                            &prev_color[0],
+                            &prev_color[1],
+                            &prev_color[2],
+                            bg_color[0], bg_color[1], bg_color[2], color[0], color[1], color[2]
+                        )
+                        },
                         Segment::Custom(color, bg_color, icon, custom) =>
                         if *icon {
                             format!(
@@ -958,6 +1083,7 @@ format!(
                     Segment::Network(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
                     Segment::Time(_, prev_color, _, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
                     Segment::ExitCode(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
+                    Segment::Directory(_, prev_color, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
                     Segment::Custom(_, prev_color, _, _) => egui::Color32::from_rgb(prev_color[0], prev_color[1], prev_color[2]),
                 };
             }
@@ -1167,6 +1293,15 @@ fn colors_text(segment: &Segment) -> (egui::Color32, egui::Color32, String) {
                 String::from("󰔓 0")
             } else {
                 String::from("0")
+            },
+        ),
+        Segment::Directory(color, bg_color, icon) => (
+            egui::Color32::from_rgb(color[0], color[1], color[2]),
+            egui::Color32::from_rgb(bg_color[0], bg_color[1], bg_color[2]),
+            if *icon {
+                String::from(" ~")
+            } else {
+                String::from("~")
             },
         ),
         Segment::Custom(color, bg_color, icon, text) => (
